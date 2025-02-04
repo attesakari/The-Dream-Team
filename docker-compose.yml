@@ -1,15 +1,108 @@
+# =============================== NOTE ===============================
+# Dependencies for our services atm are the following:
+# Frontend  depends on    Backend 
+# Backend   depends on    ML,     DB
+# ML        depends on    -
+# DB        depends on    -
+#
+# Added traefik as a reverse proxy. At the moment traefik maps the
+# following paths to the following services:
+#   localhost       -> frontend
+#   localhost/api   -> backend 
+#   localhost/ml    -> ml
+# 
+# Thus in the future we could remove all the portforwarding from these
+# services and let traefik handle it all. Thus e.g. easy TLS-certs etc.
+# for all services.
+# 
+# At the moment the services can be found from (browser works also)
+# Frontend  - curl http://localhost
+#             curl http://localhost:3000
+# Backend   - curl http://localhost/api
+#             curl http://localhost:8080
+# ML        - curl -H "Content-Type: application/json" -d "{}" http://localhost/ml/predict
+#             curl -H "Content-Type: application/json" -d "{}" http://localhost:9696/predict
+
 services:
-  backend:
-    build: ./backend
+  socketproxy:
+    image: tecnativa/docker-socket-proxy:edge
+    networks:
+      - docker-socket-proxy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - LOG_LEVEL=warning
+      - EVENTS=1
+      - PING=1
+      - VERSION=1
+      - CONTAINERS=1
+
+  traefik:
+    image: traefik:v3.1
+    command:
+      - "--providers.docker"
+      - "--providers.docker.endpoint=tcp://socketproxy:2375"
+      - "--providers.docker.network=dream-team"
+      - "--providers.docker.exposedbydefault=false"
+      - "--accesslog=true"
+      - "--entryPoints.websecure.address=:443"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.http.redirections.entrypoint.to=web"         # TODO: HTTPS
+      - "--entrypoints.websecure.http.redirections.entrypoint.scheme=http"    # TODO: HTTPS
+      # For the future:
+      # TODO: HTTPS - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      # TODO: HTTPS - "--certificatesresolvers.myresolver.acme.email=firstname.lastname@domain.com"
+      # TODO: HTTPS - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+      # TODO: HTTPS - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      # TODO: HTTPS - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
     ports:
-      - "8080:8080"
+      - mode: host
+        protocol: tcp
+        published: 80
+        target: 80
+      - mode: host
+        protocol: tcp
+        published: 443
+        target: 443
+    #volumes:
+      #- /var/run/docker.sock:/var/run/docker.sock
+      # TODO: HTTPS - letsencrypt:/letsencrypt
+    networks:
+      - docker-socket-proxy
+      - dream-team
+    #depends_on: TODO? 
+    #  - socketproxy
+      
+  backend:
+    # Backend service for handling requests to ml and db
+    build: ./backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.backend.loadbalancer.server.port=${BACKEND_PORT:-8080}"
+      - "traefik.http.routers.backend.rule=Host(`localhost`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.backend.middlewares=backend-strip"
+      - "traefik.http.middlewares.backend-strip.stripprefix.prefixes=/api"
+      - "traefik.http.routers.backend.entrypoints=web"
+      # TODO: HTTPS - "traefik.http.routers.backend.entrypoints=websecure"
+    ports:
+      - mode: host
+        protocol: tcp
+        published: ${BACKEND_PORT:-8080}
+        target: ${BACKEND_PORT:-8080}
     networks:
       - dream-team
     environment:
       - POSTGRES_DB=example
+    depends_on:
+      ml:
+        condition: service_started
+      db:
+        condition: service_healthy
   db:
+    # The database for the backend (and potentially ml)
     image: postgres
-    restart: always
+    restart: unless-stopped
+    user: postgres
     secrets:
       - db-password
     volumes:
@@ -21,27 +114,63 @@ services:
       - POSTGRES_PASSWORD_FILE=/run/secrets/db-password
     expose:
       - 5432
+    healthcheck:
+      test: [ "CMD", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   frontend:
+    # Frontend service for demo purposes
     build: ./frontend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.frontend.loadbalancer.server.port=${FRONTEND_PORT:-3000}"
+      - "traefik.http.routers.frontend.rule=Host(`localhost`) && !PathPrefix(`/ml`) && !PathPrefix(`/api`)"
+      - "traefik.http.routers.frontend.entrypoints=web"
+      # TODO: HTTPS - "traefik.http.routers.frontend.entrypoints=websecure"
     ports:
-      - "3000:3000"
+      - mode: host
+        protocol: tcp
+        published: ${FRONTEND_PORT:-3000}
+        target: ${FRONTEND_PORT:-3000}
     networks:
       - dream-team
     depends_on:
-      - backend
+      backend:
+        condition: service_started
 
   ml:
+    # The machine learning service used for ranking and team forming
     build: ./ml
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.ml.loadbalancer.server.port=${ML_PORT:-9696}"
+      - "traefik.http.routers.ml.rule=Host(`localhost`) && PathPrefix(`/ml`)"
+      - "traefik.http.routers.ml.middlewares=ml-strip"
+      - "traefik.http.middlewares.ml-strip.stripprefix.prefixes=/ml"
+      - "traefik.http.routers.ml.entrypoints=web"
+      # TODO: HTTPS - "traefik.http.routers.ml.entrypoints=websecure"
     ports:
-      - "9696:9696"
+      - mode: host
+        protocol: tcp
+        published: ${ML_PORT:-9696}
+        target: ${ML_PORT:-9696}
+    networks:
+      - dream-team
 
+# The network for communication between services
 networks:
   dream-team:
     driver: bridge
+  docker-socket-proxy:
 
+# The necessary volumes (persistance)
 volumes:
   db-data:
+  # TODO: HTTPS letsencrypt:
+
+# The necessary secrets
 secrets:
   db-password:
     file: db/password.txt
