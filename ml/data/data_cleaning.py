@@ -1,6 +1,10 @@
 import os
 import json
 import pandas as pd
+from sklearn.preprocessing import MultiLabelBinarizer, LabelEncoder
+
+encoders = {}
+
 
 # luetaan dataa ja tehdään tauluja (lisää myös koodaus)
 def clean_data():
@@ -56,6 +60,13 @@ def clean_data():
     final_merge_df = pd.merge(merged_df, dfpro, on='projectId', how='left')
     final_merge_df = final_merge_df[['tags','themes','homeUniversity', 'degreeLevelType', 'studiesField', 'relation']]
 
+
+    alternative_encode(final_merge_df)
+    save_data(final_merge_df)
+    return final_merge_df
+
+    """
+
     final_merge_df['tags'] = final_merge_df['tags'].apply(lambda d: d if isinstance(d, list) else [])
     final_merge_df['themes'] = final_merge_df['themes'].apply(lambda d: d if isinstance(d, list) else [])
 
@@ -64,6 +75,8 @@ def clean_data():
     final_merge_df = final_merge_df.astype(int)
     #print(final_merge_df)
     save_data(final_merge_df)
+
+    """
 
 # tallennetaan käytettävä data
 def save_data(table):
@@ -92,4 +105,35 @@ def one_hot_encode(fdf):
 
     return fdf
 
+
+"""
+Toinen enkoodaus funktio, koska piti saada yhteen sarakkeeseen tässä vaiheessa
+kaikki yhden teeman tiedot
+"""
+def alternative_encode(final_merge_df):
+    encoders = {}
+
+    for column in ['tags', 'themes']:
+        # Flatten the lists, ensuring we skip any non-list values (e.g., NaN)
+        flat_list = [item for sublist in final_merge_df[column] if isinstance(sublist, list) for item in sublist]
+
+        le = LabelEncoder()
+        le.fit(flat_list)
+
+        # Fit on the unique values and transform
+        final_merge_df[column] = final_merge_df[column].apply(
+            lambda x: le.transform(x) if isinstance(x, list) else 0 if pd.isna(x) else x)
+
+        # Store the encoder
+        encoders[column] = le
+
+    for column in ['homeUniversity', 'degreeLevelType', 'studiesField', 'relation']:
+        le = LabelEncoder()
+        final_merge_df[column] = le.fit_transform(final_merge_df[column])  # Muuntaa tekstin numeroiksi
+        encoders[column] = le
+
+    return final_merge_df, encoders
+#clean_data()
+
 clean_data()
+
