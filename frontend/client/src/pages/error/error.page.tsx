@@ -1,4 +1,8 @@
-const Error = ({ reason }) => {
+type ErrorProps = {
+    reason?: string
+}
+
+const Error = ({ reason }: ErrorProps) => {
     return (
         <>
             <h1>Error</h1>

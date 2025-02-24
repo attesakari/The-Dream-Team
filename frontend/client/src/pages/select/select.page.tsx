@@ -1,16 +1,20 @@
+/* Types */
+import { Project } from "../../types/Project";
+
+/* Components, services & etc. */
 import ProjectSelect from "../../components/project-select/project-select.component";
 
-const testProjects = [
+const testProjects: Array<Project> = [
     {
-        id: "1",
+        id: 1,
         name: "test 1",
     },
     {
-        id: "2",
+        id: 2,
         name: "test 2",
     },
     {
-        id: "3",
+        id: 3,
         name: "test 3",
     }
 ];

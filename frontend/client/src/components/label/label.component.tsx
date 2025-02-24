@@ -1,6 +1,12 @@
+/* Styling */
 import "./label.component.scss";
 
-const Label = ({ name, colour }) => {
+type LabelProps = {
+    name: string,
+    colour: string
+}
+
+const Label = ({ name, colour }: LabelProps) => {
     
     return (
         <>

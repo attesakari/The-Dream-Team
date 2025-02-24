@@ -1,7 +1,14 @@
-import { Link } from "react-router-dom";
+/* Lib imports */
+import { Link } from "react-router";
+
+/* Styling */
 import "./header.component.scss";
 
-const Header = ({ title }) => {
+type HeaderProps = {
+    title: string
+}
+
+const Header = ({ title }: HeaderProps) => {
     return (
         <header>
             <nav>

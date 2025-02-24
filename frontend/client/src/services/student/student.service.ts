@@ -1,4 +1,7 @@
-const students  = [
+/* Types */
+import { Student } from "../../types/Student";
+
+const students: Array<Student>  = [
     {
         id: 0,
         name: "Student Test0",
@@ -36,14 +39,14 @@ const students  = [
     },
 ]
 
-export const getStudentStatus = (id) => {
-    return id < 3 ? 0 : 1 + (id > 3);
+export const getStudentStatus = (id: number): number => {
+    return +id < 3 ? 0 : 1 + Number(+id > 3);
 }
 
-export const getStudent = (id) => {
+export const getStudent = (id: number): Student => {
     return students.filter(stud => stud.id === id)[0];
 }
 
-export const getStudents = () => {
+export const getStudents = (): Array<Student> => {
     return students;
 }
