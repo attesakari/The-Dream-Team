@@ -1,5 +1,4 @@
 name: DreamTeam CI
-
 on:
   push:
     branches: [ "staging" ]
@@ -8,6 +7,7 @@ on:
 
 jobs:
   local_deploy:
+    if: github.repository_owner == 'TDT4D'
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
