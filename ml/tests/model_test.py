@@ -20,35 +20,35 @@ def test_model_has_required_functions(model_name):
     True    # Test with cleaning
 ])
 @pytest.mark.parametrize("model_name", get_all(MODEL_DIRECTORY, __file__, EXCLUDE))
-def test_train(cleaning):
+def test_train(cleaning, model_name):
     model = get_model(model_name)
     result = model.train(cleaning=cleaning)
     assert result is True, "Training should return True if successful"
 
 
 @pytest.mark.parametrize("model_name", get_all(MODEL_DIRECTORY, __file__, EXCLUDE))
-def test_train_no_data():
+def test_train_no_data(model_name):
     model = get_model(model_name)
     result = model.train(load="non_existent_file")
     assert result is None, "Training should return None if data file is missing"
 
 
 @pytest.mark.parametrize("model_name", get_all(MODEL_DIRECTORY, __file__, EXCLUDE))
-def test_predict_no_data():
+def test_predict_no_data(model_name):
     model = get_model(model_name)
     result = model.predict(load="non_existent_file", cleaning=True)
     assert result is None, "Predict should return None if data file is missing"
 
 
 @pytest.mark.parametrize("model_name", get_all(MODEL_DIRECTORY, __file__, EXCLUDE))
-def test_predict_no_model():
+def test_predict_no_model(model_name):
     model = get_model(model_name)
     result = model.predict(model_name="non_existing_model", cleaning=False)
     assert result is None, "Predict should return None if model is missing"
 
 
 @pytest.mark.parametrize("model_name", get_all(MODEL_DIRECTORY, __file__, EXCLUDE))
-def test_predict():
+def test_predict(model_name):
     model = get_model(model_name)
     result = model.predict(cleaning=False)
 
@@ -70,7 +70,7 @@ def test_predict():
 
     
 @pytest.mark.parametrize("model_name", get_all(MODEL_DIRECTORY, __file__, EXCLUDE))
-def test_t_predict_no_data():
+def test_t_predict_no_data(model_name):
     model = get_model(model_name)
     result = model.t_predict(data="non_existing_file", cleaning=True)
     assert result is None, "t_predict should return None if data file is missing"
