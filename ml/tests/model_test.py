@@ -6,31 +6,50 @@ MODEL_DIRECTORY = "models"
 REQUIRED_FUNCTIONS = ["train", "predict"]
 EXCLUDE = ["random_forest"]
 
-@pytest.fixture(params=get_all(MODEL_DIRECTORY, __file__, EXCLUDE))
-def model(request):
-    return get_model(request.param)
+@pytest.mark.parametrize("model_name", get_all(MODEL_DIRECTORY, __file__, EXCLUDE))
+def test_model_has_required_functions(model_name):
+    model = get_model(model_name)
+    
+    for func in REQUIRED_FUNCTIONS:
+        assert hasattr(model, func), f"{model_name} is missing function: {func}"
+        assert callable(getattr(model, func)), f"{model_name}.{func} is not callable"
+
 
 @pytest.mark.parametrize("cleaning", [
     False,  # Test without cleaning
     True    # Test with cleaning
 ])
+@pytest.mark.parametrize("model_name", get_all(MODEL_DIRECTORY, __file__, EXCLUDE))
 def test_train(cleaning):
+    model = get_model(model_name)
     result = model.train(cleaning=cleaning)
     assert result is True, "Training should return True if successful"
 
+
+@pytest.mark.parametrize("model_name", get_all(MODEL_DIRECTORY, __file__, EXCLUDE))
 def test_train_no_data():
+    model = get_model(model_name)
     result = model.train(load="non_existent_file")
     assert result is None, "Training should return None if data file is missing"
 
+
+@pytest.mark.parametrize("model_name", get_all(MODEL_DIRECTORY, __file__, EXCLUDE))
 def test_predict_no_data():
+    model = get_model(model_name)
     result = model.predict(load="non_existent_file", cleaning=True)
     assert result is None, "Predict should return None if data file is missing"
 
+
+@pytest.mark.parametrize("model_name", get_all(MODEL_DIRECTORY, __file__, EXCLUDE))
 def test_predict_no_model():
+    model = get_model(model_name)
     result = model.predict(model_name="non_existing_model", cleaning=False)
     assert result is None, "Predict should return None if model is missing"
 
+
+@pytest.mark.parametrize("model_name", get_all(MODEL_DIRECTORY, __file__, EXCLUDE))
 def test_predict():
+    model = get_model(model_name)
     result = model.predict(cleaning=False)
 
     # Check that result is list of dicts
@@ -49,6 +68,9 @@ def test_predict():
     # Check, that "Predicted_Relation" is Int
     assert all(isinstance(entry["Predicted_Relation"], int) for entry in result), "'Predicted_Relation' should be an int"
 
+    
+@pytest.mark.parametrize("model_name", get_all(MODEL_DIRECTORY, __file__, EXCLUDE))
 def test_t_predict_no_data():
+    model = get_model(model_name)
     result = model.t_predict(data="non_existing_file", cleaning=True)
     assert result is None, "t_predict should return None if data file is missing"
