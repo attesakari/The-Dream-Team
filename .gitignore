@@ -14,3 +14,6 @@ super-linter.log
 
 # GitHub Actions leftovers
 github_conf
+
+#Allow test file with made up data
+!ml/data/cleaned_data_test.json

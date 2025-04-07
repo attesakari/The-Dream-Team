@@ -1,28 +1,29 @@
 import pytest
 from models import get_model
 from utils.testing_utils import get_all
+from pathlib import Path
+
+this_dir = Path(__file__).resolve().parent
+test_file = str(this_dir.parent / "data" / "cleaned_data_test.json")
 
 MODEL_DIRECTORY = "models"
 REQUIRED_FUNCTIONS = ["train", "predict"]
 EXCLUDE = ["random_forest"]
 
+
 @pytest.mark.parametrize("model_name", get_all(MODEL_DIRECTORY, __file__, EXCLUDE))
 def test_model_has_required_functions(model_name):
     model = get_model(model_name)
-    
+
     for func in REQUIRED_FUNCTIONS:
         assert hasattr(model, func), f"{model_name} is missing function: {func}"
         assert callable(getattr(model, func)), f"{model_name}.{func} is not callable"
 
 
-@pytest.mark.parametrize("cleaning", [
-    False,  # Test without cleaning
-    True    # Test with cleaning
-])
 @pytest.mark.parametrize("model_name", get_all(MODEL_DIRECTORY, __file__, EXCLUDE))
-def test_train(cleaning, model_name):
+def test_train(model_name):
     model = get_model(model_name)
-    result = model.train(cleaning=cleaning)
+    result = model.train(load=test_file, cleaning=False)
     assert result is True, "Training should return True if successful"
 
 
@@ -43,15 +44,14 @@ def test_predict_no_data(model_name):
 @pytest.mark.parametrize("model_name", get_all(MODEL_DIRECTORY, __file__, EXCLUDE))
 def test_predict_no_model(model_name):
     model = get_model(model_name)
-    result = model.predict(model_name="non_existing_model", cleaning=False)
+    result = model.predict(load=test_file, model_name="non_existing_model", cleaning=False)
     assert result is None, "Predict should return None if model is missing"
 
 
 @pytest.mark.parametrize("model_name", get_all(MODEL_DIRECTORY, __file__, EXCLUDE))
 def test_predict(model_name):
     model = get_model(model_name)
-    result = model.predict(cleaning=False)
-
+    result = model.predict(load=test_file, cleaning=False)
     # Check that result is list of dicts
     assert isinstance(result, list), "Predict should return a list"
     assert all(isinstance(entry, dict) for entry in result), "All entries should be dictionaries"
@@ -66,9 +66,10 @@ def test_predict(model_name):
     assert all(isinstance(entry["Score"], float) for entry in result), "'Score' should be a float"
 
     # Check, that "Predicted_Relation" is Int
-    assert all(isinstance(entry["Predicted_Relation"], int) for entry in result), "'Predicted_Relation' should be an int"
+    assert all(
+        isinstance(entry["Predicted_Relation"], int) for entry in result), "'Predicted_Relation' should be an int"
 
-    
+
 @pytest.mark.parametrize("model_name", get_all(MODEL_DIRECTORY, __file__, EXCLUDE))
 def test_t_predict_no_data(model_name):
     model = get_model(model_name)
