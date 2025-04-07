@@ -6,7 +6,7 @@ from utils import storage
 import pandas as pd
 
 
-def train(data="rawData", model_name="randomforest_v2", cleaning:bool=True):
+def train(load="rawData", model_name="randomforest_v2", cleaning:bool=True):
     """
     Trains a Random Forest model and saves it using storage utils
     
@@ -85,7 +85,7 @@ def train(data="rawData", model_name="randomforest_v2", cleaning:bool=True):
         print("Error saving the model.")
         return False
 
-def predict(data="rawData", model_name="randomforest_v2", score_file="student_scores_default", cleaning:bool=True):
+def predict(load="rawData", model_name="randomforest_v2", score_file="student_scores_default", cleaning:bool=True):
     """
     - Loads a trained Random Forest model and makes predictions using the storage utility.
     - Saves predictions
