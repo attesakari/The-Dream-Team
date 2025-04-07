@@ -11,7 +11,7 @@ def train(load="rawData", model_name="randomforest_v2", cleaning:bool=True):
     Trains a Random Forest model and saves it using storage utils
     
     Args:
-        data (str): Raw data or pre-cleaned data.
+        load (str): Raw data or pre-cleaned data.
         save_name (str): Name to save the trained model.
         
     Returns:
@@ -21,11 +21,11 @@ def train(load="rawData", model_name="randomforest_v2", cleaning:bool=True):
     
 
     if cleaning:
-        clean_data = get_cleaner("default_cleaner").clean_data(data, "train_clean")
+        clean_data = get_cleaner("default_cleaner").clean_data(load, "train_clean")
         print("Data cleaned, ready for training")
     else:
         print("Data cleaning skipped at model")
-        clean_data = storage.load_json(data)
+        clean_data = storage.load_json(load)
     
     if clean_data is None or len(clean_data) == 0:
         print("ERROR: No data available for training.")
@@ -91,7 +91,7 @@ def predict(load="rawData", model_name="randomforest_v2", score_file="student_sc
     - Saves predictions
     
     Args:
-        data (str): Raw data or pre-cleaned data.
+        load (str): Raw data or pre-cleaned data.
         model_name (str): Name of the saved model file to load.
         save_name (str): Name of the file to save predictions.
         cleaning (bool): check if cleaning of data is needed
@@ -107,10 +107,10 @@ def predict(load="rawData", model_name="randomforest_v2", score_file="student_sc
         return None
 
     if cleaning:
-        cleaned_data = get_cleaner("default_cleaner").clean_data(data, "predict_clean")
+        cleaned_data = get_cleaner("default_cleaner").clean_data(load, "predict_clean")
         print("Data cleaned ready for scoring")
     else:
-        cleaned_data=storage.load_json(data)
+        cleaned_data=storage.load_json(load)
 
     if cleaned_data is None or len(cleaned_data) == 0:
         print("ERROR: No data available for prediction.")
