@@ -1,3 +1,7 @@
+/**
+ * This package has all the controllers for the backend. It is responsible for handling HTTP
+ * requests and responses.
+ */
 package com.github.dreamteam.controllers;
 
 import java.util.Optional;
@@ -19,7 +23,7 @@ import org.springframework.web.client.RestTemplate;
 public class BaseController {
   private static final Logger LOGGER = LoggerFactory.getLogger(BaseController.class);
   private final RestTemplate restTemplate = new RestTemplate();
-  private final String ML_BASE_URL = "http://ml:9696";
+  private final String mlBaseUrl = "http://ml:9696";
 
   /**
    * Root endpoint to verify service availability.
@@ -28,12 +32,14 @@ public class BaseController {
    */
   @RequestMapping("/")
   public String index() {
+    LOGGER.info("Root endpoint called");
     return "Greetings from Spring Boot!";
   }
 
   /**
-   * Initializes the ML system by first cleaning data and then training a model. The training step
-   * only proceeds if data cleaning is successful.
+   * Initializes the ML system by first cleaning data and then training a model and making a
+   * prediction. This is a sequential process where each step depends on the success of the previous
+   * one.
    *
    * @return ResponseEntity indicating success or failure.
    */
@@ -42,13 +48,41 @@ public class BaseController {
     LOGGER.info("Received request to initialize ML");
     try {
       ResponseEntity<String> cleanResponse =
-          restTemplate.postForEntity(ML_BASE_URL + "/data/clean", null, String.class);
-      if (cleanResponse.getStatusCode().is2xxSuccessful()) {
-        restTemplate.postForEntity(ML_BASE_URL + "/training/train", null, String.class);
-        return ResponseEntity.ok("Initialization complete");
-      } else {
-        return ResponseEntity.status(cleanResponse.getStatusCode()).body("Data cleaning failed");
+          restTemplate.postForEntity(mlBaseUrl + "/data/clean", null, String.class);
+
+      if (!cleanResponse.getStatusCode().is2xxSuccessful()) {
+        LOGGER.error(
+            "Data cleaning failed with status: {} and message: {}",
+            cleanResponse.getStatusCode(),
+            cleanResponse.getBody());
+        return ResponseEntity.status(cleanResponse.getStatusCode())
+            .body("Data cleaning failed with message: " + cleanResponse.getBody());
       }
+      ResponseEntity<String> trainResponse =
+          restTemplate.postForEntity(mlBaseUrl + "/training/train", null, String.class);
+
+      if (!trainResponse.getStatusCode().is2xxSuccessful()) {
+        LOGGER.error(
+            "Model training failed with status: {} and message: {}",
+            trainResponse.getStatusCode(),
+            trainResponse.getBody());
+        return ResponseEntity.status(trainResponse.getStatusCode())
+            .body("Model training failed with message: " + trainResponse.getBody());
+      }
+
+      ResponseEntity<String> predictResponse =
+          restTemplate.postForEntity(mlBaseUrl + "/score/predict", null, String.class);
+
+      if (!predictResponse.getStatusCode().is2xxSuccessful()) {
+        LOGGER.error(
+            "Prediction failed with status: {} and message: {}",
+            predictResponse.getStatusCode(),
+            predictResponse.getBody());
+        return ResponseEntity.status(predictResponse.getStatusCode())
+            .body("Prediction failed with message: " + predictResponse.getBody());
+      }
+
+      return ResponseEntity.ok("Initialization complete");
     } catch (Exception e) {
       LOGGER.error("Error during initialization", e);
       return ResponseEntity.status(500).body("Initialization failed");
@@ -69,7 +103,7 @@ public class BaseController {
     try {
       String cleaner = dataCleaner.isPresent() ? "?cleaner=" + dataCleaner.get() : "";
       ResponseEntity<String> response =
-          restTemplate.postForEntity(ML_BASE_URL + "/data/clean" + cleaner, null, String.class);
+          restTemplate.postForEntity(mlBaseUrl + "/data/clean" + cleaner, null, String.class);
       return ResponseEntity.ok(response.getBody());
     } catch (Exception e) {
       LOGGER.error("Error during data cleaning", e);
@@ -91,7 +125,7 @@ public class BaseController {
     try {
       String model = modelName.isPresent() ? "?model=" + modelName.get() : "";
       ResponseEntity<String> response =
-          restTemplate.postForEntity(ML_BASE_URL + "/training/train" + model, null, String.class);
+          restTemplate.postForEntity(mlBaseUrl + "/training/train" + model, null, String.class);
       return ResponseEntity.ok(response.getBody());
     } catch (Exception e) {
       LOGGER.error("Error during model training", e);

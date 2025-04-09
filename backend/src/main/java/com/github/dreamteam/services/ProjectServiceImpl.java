@@ -1,3 +1,7 @@
+/**
+ * The service implementation for managing Project entities. It provides methods to retrieve all
+ * projects with an optional limit on the number of projects returned.
+ */
 package com.github.dreamteam.services;
 
 import com.github.dreamteam.exceptions.EntityNotFoundException;
@@ -11,6 +15,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
 
+/**
+ * The service implementation for managing Project entities. It provides methods to retrieve all
+ * projects with an optional limit on the number of projects returned.
+ */
 @Service
 public class ProjectServiceImpl implements ProjectService {
 
@@ -19,10 +27,23 @@ public class ProjectServiceImpl implements ProjectService {
 
   // TODO: Add index
 
+  /**
+   * Constructor for ProjectServiceImpl. Initializes the MongoDB collection for projects.
+   *
+   * @param mongoTemplate The MongoTemplate instance used to interact with MongoDB.
+   */
   public ProjectServiceImpl(MongoTemplate mongoTemplate) {
     this.projectCollection = mongoTemplate.getCollection("projects");
   }
 
+  /**
+   * Retrieves all projects from the MongoDB database with an optional limit on the number of
+   * projects returned.
+   *
+   * @param limit The maximum number of projects to retrieve. If 0, retrieves all projects.
+   * @return A collection of projects.
+   * @throws EntityNotFoundException if no projects are found.
+   */
   public Collection<Document> getAllProjects(int limit) {
     LOGGER.info("Fetching all projects from MongoDB with limit {}", limit);
     // connect to MongoDB and fetch all projects
