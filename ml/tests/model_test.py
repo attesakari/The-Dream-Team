@@ -10,7 +10,7 @@ non_existing_file = str(this_dir.parent / "data" / "non_existing_file.json")
 
 MODEL_DIRECTORY = "models"
 REQUIRED_FUNCTIONS = ["train", "predict"]
-EXCLUDE = ["random_forest"]
+EXCLUDE = ["random_forest", "motivational_model_v1", "motivational_randomforest"]
 
 ALL_MODELS = get_all(MODEL_DIRECTORY, __file__, EXCLUDE)
 

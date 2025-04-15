@@ -48,6 +48,7 @@ def train(load="rawData", model_name=MODEL_NAME, cleaning:bool=True):
         print(f"ERROR: Expected data but received a file name: {data}")
         return None
 
+
     df = pd.DataFrame(data)  # Convert to DataFrame
     print("Columns in cleaned data:", df.columns)  # Debugging
 
@@ -68,7 +69,6 @@ def train(load="rawData", model_name=MODEL_NAME, cleaning:bool=True):
     # Define feature set (excluding relation)
     X = df.drop(columns=['relation'])  # Remove target column
     y = df['relation']  # Target column
-
 
     # Modify y to combine every class to 0 except Droputs to class 1
     y_binary = y.apply(lambda x: 1 if x == 3 else 0)
@@ -135,7 +135,7 @@ def predict(load="rawData", model_name=MODEL_NAME, score_file="motivation_studen
         data = motivation_data_cleaning_version2.clean_data(load)
     else:
         data = storage.load_json(load)
-
+        
     # Check if data was loaded correctly
     if data is None or len(data) == 0:
         print("ERROR: No data available for training.")

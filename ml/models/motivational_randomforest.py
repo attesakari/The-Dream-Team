@@ -16,6 +16,7 @@ def train(load="rawData", model_name=MODEL_NAME, cleaning:bool=True):
     """
     Trains a Randomforest model to predict the motivation of applicant for a project.
 
+
     - Cleans data if needed
     - Splits relations into dropout and others
     - Splits data into train & test sets
@@ -48,9 +49,10 @@ def train(load="rawData", model_name=MODEL_NAME, cleaning:bool=True):
         return None
 
     # Additional check to ensure clean_data is not just a file name
-    elif isinstance(data, str):
+    if isinstance(data, str):
         print(f"ERROR: Expected data but received a file name: {data}")
         return None
+
     df = pd.DataFrame(data)  # Convert to DataFrame
 
     print("Columns in cleaned data:", df.columns)  # Debugging
@@ -72,7 +74,6 @@ def train(load="rawData", model_name=MODEL_NAME, cleaning:bool=True):
     # Define feature set (excluding relation)
     X = df.drop(columns=['relation'])  # Remove target column
     y = df['relation']  # Target column
-
 
     # Modify y to combine every class to 0 except Droputs to class 1
     y_binary = y.apply(lambda x: 1 if x == 3 else 0)
@@ -96,6 +97,7 @@ def train(load="rawData", model_name=MODEL_NAME, cleaning:bool=True):
         n_estimators=100,
         max_depth=10
     )
+
 
     # Train and predict model accuracy
     clf.fit(X_train_res, y_train_res)
