@@ -1,4 +1,3 @@
-from data_handling import motivation_data_cleaning_version2
 from data_handling import get_cleaner
 from utils import storage
 from sklearn.preprocessing import MinMaxScaler
