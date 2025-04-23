@@ -13,6 +13,54 @@ from imblearn.over_sampling import SMOTE
 
 MODEL_NAME = "meta_model"
 
+def load_and_clean_data(load, cleaning):
+    """
+    Loads and processes student data for model training
+
+    Functionality:
+    - Cleans the data using the default cleaner if cleaning=True
+    - Loads raw or cleaned JSON data from storage
+    - Validates that the data is properly loaded and usable
+    - Converts the data into a pandas DataFrame
+
+    Returns:
+        pd.DataFrame: Cleaned and formatted DataFrame.
+        None: If data loading or processing fails.
+    """
+    if cleaning:
+        data = get_cleaner("default_cleaner").clean_data(load)
+    else:
+        data = storage.load_json(load)
+
+    # Check if data was loaded correctly
+    if data is None or len(data) == 0:
+        print("ERROR: No data available for training.")
+        return None
+
+    # Additional check to ensure clean_data is not just a file name
+    if isinstance(data, str):
+        print(f"ERROR: Expected data but received a file name: {data}")
+        return None
+
+    df = pd.DataFrame(data)  # Convert to DataFrame
+    print("Columns in cleaned data:", df.columns)  # Debugging
+
+    # Identify One-Hot Encoded `relation_*` Columns
+    relation_columns = [col for col in df.columns if "relation_" in col]
+
+    if len(relation_columns) == 0:
+        print("ERROR: 'relation' column missing after data cleaning!")
+        return None
+
+    # Convert One-Hot Encoded `relation_*` Columns Back to a Single `relation` Column
+    df['relation'] = df[relation_columns].idxmax(axis=1)  # Gets the column with max value (1)
+    df['relation'] = df['relation'].apply(lambda x: int(x.split("_")[-1]))  # Extracts numerical value
+
+    # Drop one-hot relation columns after merging them
+    df = df.drop(columns=relation_columns)
+
+    return df
+
 def train(load="rawData", model_name=MODEL_NAME, cleaning:bool=True):
     """
     Trains a Meta model to predict the 'relation' of a student to a project.
@@ -29,38 +77,10 @@ def train(load="rawData", model_name=MODEL_NAME, cleaning:bool=True):
         dict: A dictionary containing test predictions and their scores.
     """
 
-    if cleaning:
-        data = get_cleaner("default_cleaner").clean_data(load)
-    else:
-        data=storage.load_json(load)
-
-    #Check if data was loaded correctly
-    if data is None or len(data) == 0:
-        print("ERROR: No data available for training.")
+    # Load and clean data if necessary
+    df = load_and_clean_data(load, cleaning)
+    if df is None:
         return None
-
-    #Additional check to ensure clean_data is not just a file name
-    if isinstance(data, str):
-        print(f"ERROR: Expected data but received a file name: {data}")
-        return None
-
-    df = pd.DataFrame(data)  # Convert to DataFrame
-
-    print("Columns in cleaned data:", df.columns)  #Debugging
-
-    #Identify One-Hot Encoded `relation_*` Columns
-    relation_columns = [col for col in df.columns if "relation_" in col]
-
-    if len(relation_columns) == 0:
-        print("ERROR: 'relation' column missing after data cleaning!")
-        return None
-
-    #Convert One-Hot Encoded `relation_*` Columns Back to a Single `relation` Column
-    df['relation'] = df[relation_columns].idxmax(axis=1)  # Gets the column with max value (1)
-    df['relation'] = df['relation'].apply(lambda x: int(x.split("_")[-1]))  # Extracts numerical value
-
-    #Drop one-hot relation columns after merging them
-    df = df.drop(columns=relation_columns)
 
     #Define feature set (excluding relation)
     X = df.drop(columns=['relation'])  # Remove target column
@@ -143,33 +163,10 @@ def predict(load="rawData", model_name=MODEL_NAME, score_file="student_scores_me
         print(f"Model '{model_name}' could not be loaded.")
         return None
     
-    if cleaning:
-        data = get_cleaner("default_cleaner").clean_data(load)
-    else:
-        data=storage.load_json(load)
-
-    #Additional check to ensure clean_data is not just a file name
-    if isinstance(data, str):
-        print(f"ERROR: Expected data but received a file name: {data}")
-        return None    
-
-    df = pd.DataFrame(data)  # Convert to DataFrame
-
-    print("Columns in cleaned data:", df.columns)  #Debugging
-
-    #Identify One-Hot Encoded `relation_*` Columns
-    relation_columns = [col for col in df.columns if "relation_" in col]
-
-    if len(relation_columns) == 0:
-        print("ERROR: 'relation' column missing after data cleaning!")
+    # Load and clean data if necessary
+    df = load_and_clean_data(load, cleaning)
+    if df is None:
         return None
-
-    #Convert One-Hot Encoded `relation_*` Columns Back to a Single `relation` Column
-    df['relation'] = df[relation_columns].idxmax(axis=1)  # Gets the column with max value (1)
-    df['relation'] = df['relation'].apply(lambda x: int(x.split("_")[-1]))  # Extracts numerical value
-
-    #Drop one-hot relation columns after merging them
-    df = df.drop(columns=relation_columns)
 
     #Define feature set (excluding relation)
     X = df.drop(columns=['relation'])  # Remove target column
@@ -220,7 +217,8 @@ def t_predict(data="rawData", model_name=f"{MODEL_NAME}_t", score_file="student_
     
     #Clean data and change the file name to proper
     if cleaning:
-        get_cleaner("default_cleaner").clean_data(data, "t_meta_predict_clean")
+        if get_cleaner("default_cleaner").clean_data(data, "t_meta_predict_clean") is None:
+            return None # Return None if data file is not found
         data = "t_meta_predict_clean"
 
     train(data, model_name, cleaning=False)
